@@ -128,7 +128,6 @@ func (s *Server) ReleaseProducts(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var products []productData
-	// нужно добавить валидацию приходящих данных по ключу и значению
 	decoder := json.NewDecoder(r.Body)
 	if err := decoder.Decode(&products); err != nil {
 		s.logger.Errorw(
