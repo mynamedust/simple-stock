@@ -79,24 +79,46 @@ func (s *Server) ReserveProducts(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "JSON decoding error: "+err.Error(), http.StatusBadRequest)
 		return
 	}
-	if err := s.storage.ReserveProductsByCode(productToString(products)); err != nil {
+	productsString, count := productToString(products)
+	if status, err := s.storage.ReserveProductsByCode(getStocks(products), productsString, count); err != nil {
 		s.logger.Errorw(
 			"Product reservation failed",
 			"error", err.Error())
-		http.Error(w, "Product reservation failed: "+err.Error(), http.StatusBadRequest)
+		http.Error(w, "Product reservation failed: "+err.Error(), status)
 		return
 	}
 
 	w.WriteHeader(http.StatusOK)
 }
 
-func productToString(products []productData) (productsSting string) {
+func productToString(products []productData) (string, int) {
+	var productsSting string
+	unique := make(map[productData]struct{})
+
+	count := 0
 	for _, product := range products {
+		if _, exist := unique[product]; !exist {
+			count++
+		}
+		unique[product] = struct{}{}
 		productsSting += fmt.Sprintf("('%s', %d),", product.Code, product.StockID)
 	}
-
 	// Удаление последней запятой
-	return productsSting[:len(productsSting)-1]
+	return productsSting[:len(productsSting)-1], count
+}
+
+func getStocks(products []productData) []int {
+	uniqueStocks := make(map[int]struct{})
+	for _, product := range products {
+		uniqueStocks[product.StockID] = struct{}{}
+	}
+
+	var stocks []int
+	for id := range uniqueStocks {
+		stocks = append(stocks, id)
+	}
+
+	return stocks
 }
 
 func (s *Server) ReleaseProducts(w http.ResponseWriter, r *http.Request) {
@@ -115,11 +137,12 @@ func (s *Server) ReleaseProducts(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "JSON decoding error: "+err.Error(), http.StatusBadRequest)
 		return
 	}
-	if err := s.storage.ReleaseProductsByCode(productToString(products)); err != nil {
+	productsStrign, count := productToString(products)
+	if status, err := s.storage.ReleaseProductsByCode(getStocks(products), productsStrign, count); err != nil {
 		s.logger.Errorw(
 			"Product releasing failed",
 			"error", err.Error())
-		http.Error(w, "Product releasing failed: "+err.Error(), http.StatusBadRequest)
+		http.Error(w, "Product releasing failed: "+err.Error(), status)
 		return
 	}
 
