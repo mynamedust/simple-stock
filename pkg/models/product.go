@@ -1,11 +1,7 @@
 package models
 
 type Product struct {
-	ID       int
-	Name     string
-	Size     string
-	Code     string
-	Quantity int
-	Reserved int
-	StockID  int
+	ID           string `jsonapi:"primary,product"`
+	StorehouseID int    `jsonapi:"attr,storehouse_id"`
+	Code         string `jsonapi:"attr,code"`
 }

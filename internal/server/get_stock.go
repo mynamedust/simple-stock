@@ -2,15 +2,12 @@ package server
 
 import (
 	"github.com/google/jsonapi"
+	"lamodaTest/pkg/models"
 	"net/http"
 )
 
-type StorehouseData struct {
-	ID int `jsonapi:"primary,storehouses"`
-}
-
 type StorehouseCount struct {
-	ID    int `jsonapi:"primary,storehouses"`
+	ID    int `jsonapi:"primary,storehouse"`
 	Count int `jsonapi:"attr,count"`
 }
 
@@ -20,7 +17,7 @@ func (s *Server) GetStock(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var data StorehouseData
+	var data models.Storehouse
 	if err := jsonapi.UnmarshalPayload(r.Body, &data); err != nil {
 		s.handleError(w, err, "JSONAPI decoding error", http.StatusBadRequest)
 		return

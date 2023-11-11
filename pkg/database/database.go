@@ -47,6 +47,7 @@ func (db *DataStorage) ReserveProductsByCode(stocks []int, products string, prod
 	//*ПОДУМАТЬ НАД ЛОГИРОВАНИЕМ*
 	//ПРОВЕРЯЕМ СКЛАДЫ
 	var count int
+	log.Println(stocks, products, productsCount)
 	tx, err := db.database.Begin()
 	if err != nil {
 		return http.StatusInternalServerError, err
