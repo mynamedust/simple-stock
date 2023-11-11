@@ -3,6 +3,7 @@ module lamodaTest
 go 1.21
 
 require (
+	github.com/google/jsonapi v1.0.0
 	github.com/gorilla/mux v1.8.0
 	github.com/lib/pq v1.10.9
 	github.com/spf13/viper v1.17.0
