@@ -1,4 +1,4 @@
-module lamodaTest
+module simple-stock
 
 go 1.21
 

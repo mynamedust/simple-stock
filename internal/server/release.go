@@ -9,8 +9,8 @@ import (
 	"simple-stock/pkg/models"
 )
 
-// ReserveProducts Обработчик HTTP-запросов для резервирования товаров.
-func (s *Server) ReserveProducts(w http.ResponseWriter, r *http.Request) {
+// ReleaseProducts Обработчик HTTP-запросов для освобождения резерва товаров.
+func (s *Server) ReleaseProducts(w http.ResponseWriter, r *http.Request) {
 	if contentType := r.Header.Get("Content-Type"); contentType != jsonapi.MediaType {
 		http.Error(w, "Invalid content type. Expected: "+jsonapi.MediaType, http.StatusBadRequest)
 		return
@@ -31,8 +31,8 @@ func (s *Server) ReserveProducts(w http.ResponseWriter, r *http.Request) {
 		products = append(products, *p)
 	}
 	productsString, count := business.ProductToString(products)
-	if status, err := s.storage.ReserveProductsByCode(business.GetStocksID(products), productsString, count); err != nil {
-		s.handleError(w, err, "Product reservation failed", status)
+	if status, err := s.storage.ReleaseProductsByCode(business.GetStocksID(products), productsString, count); err != nil {
+		s.handleError(w, err, "Product releasing failed", status)
 		return
 	}
 	w.WriteHeader(http.StatusOK)

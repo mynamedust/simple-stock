@@ -1,3 +1,5 @@
+// Package database Реализует работу приложения с базой данных
+// postgres, а так же определяет типы и интерфейсы для взаимодействия.
 package database
 
 import (
@@ -6,11 +8,12 @@ import (
 	"fmt"
 	"github.com/lib/pq"
 	_ "github.com/lib/pq"
-	"lamodaTest/internal/config"
 	"log"
 	"net/http"
+	"simple-stock/internal/config"
 )
 
+// Storage Интерфейс, реализующий резервацию и освобождение товара.
 type Storage interface {
 	GetStorehouseRemainderByID(id int) (count int, err error)
 	ReserveProductsByCode(stocks []int, products string, count int) (int, error)
@@ -18,32 +21,36 @@ type Storage interface {
 	Close()
 }
 
-type DataStorage struct {
+type dataStorage struct {
 	database *sql.DB
 }
 
-func New(cfg config.Storage) *DataStorage {
+// New Конструктор конфигурации сервера.
+func New(cfg config.Storage) *dataStorage {
 	db, err := sql.Open("postgres", fmt.Sprintf("host=postgres user=%s password=%s dbname=%s port=%s sslmode=%s", cfg.User, cfg.Password, cfg.Name, cfg.Port, cfg.SSL))
 	if err != nil {
 		log.Fatal(err)
 	}
-	return &DataStorage{
+	return &dataStorage{
 		database: db,
 	}
 }
 
-func (db *DataStorage) Close() {
+// Close Закрытие соединения с базой данных.
+func (db *dataStorage) Close() {
 	db.Close()
 }
 
-func (db *DataStorage) GetStorehouseRemainderByID(id int) (int, error) {
+// GetStorehouseRemainderByID Вернуть количество товаров на складе по ID.
+func (db *dataStorage) GetStorehouseRemainderByID(id int) (int, error) {
 	var count int
 
 	err := db.database.QueryRow("SELECT COALESCE(SUM(quantity), 0) FROM product WHERE stock_id = $1", id).Scan(&count)
 	return count, err
 }
 
-func (db *DataStorage) ReserveProductsByCode(stocks []int, products string, productsCount int) (int, error) {
+// ReserveProductsByCode Резервация товаров по уникальному коду и ID склада.
+func (db *dataStorage) ReserveProductsByCode(stocks []int, products string, productsCount int) (int, error) {
 	//*ПОДУМАТЬ НАД ЛОГИРОВАНИЕМ*
 	//ПРОВЕРЯЕМ СКЛАДЫ
 	var count int
@@ -118,7 +125,8 @@ func (db *DataStorage) ReserveProductsByCode(stocks []int, products string, prod
 	return http.StatusOK, nil
 }
 
-func (db *DataStorage) ReleaseProductsByCode(stocks []int, products string, productsCount int) (int, error) {
+// ReleaseProductsByCode Освобождение резерва товаров по уникальному коду и ID склада.
+func (db *dataStorage) ReleaseProductsByCode(stocks []int, products string, productsCount int) (int, error) {
 	var count int
 	tx, err := db.database.Begin()
 	if err != nil {

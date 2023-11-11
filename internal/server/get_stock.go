@@ -2,15 +2,17 @@ package server
 
 import (
 	"github.com/google/jsonapi"
-	"lamodaTest/pkg/models"
 	"net/http"
+	"simple-stock/pkg/models"
 )
 
+// StorehouseCount Структура данных возвращаемых GetStock обработчиком.
 type StorehouseCount struct {
 	ID    int `jsonapi:"primary,storehouse"`
 	Count int `jsonapi:"attr,count"`
 }
 
+// GetStock Обработчик HTTP-запросов для получения количества товаров на складе.
 func (s *Server) GetStock(w http.ResponseWriter, r *http.Request) {
 	if contentType := r.Header.Get("Content-Type"); contentType != jsonapi.MediaType {
 		http.Error(w, "Invalid content type. Expected: application/vnd.api+json", http.StatusBadRequest)

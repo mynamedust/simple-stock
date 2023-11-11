@@ -8,7 +8,7 @@ RUN go mod download
 COPY . .
 RUN go build -o ./build/myapp ./cmd
 
-FROM alpine:latest
+FROM alpine:3.18
 WORKDIR /app
 COPY --from=builder /app/build/myapp .
 COPY --from=builder /app/internal/config/config.yml .

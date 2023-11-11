@@ -1,11 +1,12 @@
+// Приложение для взаимодействия с товарами на складах.
 package main
 
 import (
 	"errors"
-	"lamodaTest/internal/config"
-	"lamodaTest/internal/server"
 	"log"
 	"net/http"
+	"simple-stock/internal/config"
+	"simple-stock/internal/server"
 )
 
 func main() {

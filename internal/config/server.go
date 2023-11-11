@@ -1,3 +1,5 @@
+// Package config Пакет предоставляет функции для работы с конфигурацией сервера и базы данных.
+// Использует библиотеку "github.com/spf13/viper" для чтения конфигурационных файлов в формате YAML.
 package config
 
 import (
@@ -5,11 +7,13 @@ import (
 	"log"
 )
 
+// Server Конфигурация сервера, состоящая из прослушиваемого адреса и базы данных.
 type Server struct {
 	Address  string
 	Database Storage
 }
 
+// Storage Конфигурация базы данных, включающая в себя данные, требуемые для подключения.
 type Storage struct {
 	Name     string
 	User     string
@@ -19,6 +23,7 @@ type Storage struct {
 	SSL      string
 }
 
+// New Конструктор конфигурации сервера.
 func New() (config Server) {
 	viper.SetConfigName("config")
 	viper.SetConfigType("yaml")
