@@ -5,11 +5,11 @@ package business
 
 import (
 	"fmt"
-	"simple-stock/pkg/models"
+	"github.com/mynamedust/simple-stock/pkg/models"
 )
 
-// ProductToString Функция преобразования слайса товаров в строку и возврата количества уникальных товаров.
-func ProductToString(products []models.Product) (string, int) {
+// productToString Функция преобразования слайса товаров в строку и возврата количества уникальных товаров.
+func productToString(products []models.Product) (string, int) {
 	var productsSting string
 
 	type uniqueProduct struct {
@@ -31,8 +31,8 @@ func ProductToString(products []models.Product) (string, int) {
 	return productsSting[:len(productsSting)-1], count
 }
 
-// GetStocksID Функция извлечения уникальных ID складов.
-func GetStocksID(products []models.Product) []int {
+// getStocksID Функция извлечения уникальных ID складов.
+func getStocksID(products []models.Product) []int {
 	uniqueStocks := make(map[int]struct{})
 	for _, product := range products {
 		uniqueStocks[product.StorehouseID] = struct{}{}

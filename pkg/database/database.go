@@ -6,34 +6,23 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"github.com/lib/pq"
 	_ "github.com/lib/pq"
-	"log"
-	"net/http"
-	"simple-stock/internal/config"
+	"github.com/mynamedust/simple-stock/pkg/models"
 )
-
-// Storage Интерфейс, реализующий резервацию и освобождение товара.
-type Storage interface {
-	GetStorehouseRemainderByID(id int) (count int, err error)
-	ReserveProductsByCode(stocks []int, products string, count int) (int, error)
-	ReleaseProductsByCode(stocks []int, products string, count int) (int, error)
-	Close()
-}
 
 type dataStorage struct {
 	database *sql.DB
 }
 
 // New Конструктор конфигурации сервера.
-func New(cfg config.Storage) *dataStorage {
+func New(cfg models.StorageConfig) (*dataStorage, error) {
 	db, err := sql.Open("postgres", fmt.Sprintf("host=postgres user=%s password=%s dbname=%s port=%s sslmode=%s", cfg.User, cfg.Password, cfg.Name, cfg.Port, cfg.SSL))
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 	return &dataStorage{
 		database: db,
-	}
+	}, nil
 }
 
 // Close Закрытие соединения с базой данных.
@@ -50,28 +39,27 @@ func (db *dataStorage) GetStorehouseRemainderByID(id int) (int, error) {
 }
 
 // ReserveProductsByCode Резервация товаров по уникальному коду и ID склада.
-func (db *dataStorage) ReserveProductsByCode(stocks []int, products string, productsCount int) (int, error) {
+func (db *dataStorage) ReserveProductsByCode(transaction StockTransaction) error {
 	//*ПОДУМАТЬ НАД ЛОГИРОВАНИЕМ*
 	//ПРОВЕРЯЕМ СКЛАДЫ
 	var count int
-	log.Println(stocks, products, productsCount)
 	tx, err := db.database.Begin()
 	if err != nil {
-		return http.StatusInternalServerError, err
+		return err
 	}
 
 	query := "SELECT COUNT(*) FROM storehouse WHERE is_available = true AND id IN ("
-	for _, stock := range stocks {
+	for _, stock := range transaction.Stocks {
 		query += fmt.Sprintf("%d,", stock)
 	}
 	query = query[:len(query)-1] + ")"
 	err = tx.QueryRow(query).Scan(&count)
 	if err != nil {
 		tx.Rollback()
-		return http.StatusInternalServerError, err
+		return err
 	}
-	if count != len(stocks) {
-		return http.StatusOK, errors.New("Storehouses are not available")
+	if count != len(transaction.Stocks) {
+		return errors.New("Storehouses are not available")
 	}
 
 	//ВЫЧИТАЕМ ИЗ ОБЩЕГО КОЛИЧЕСТВА
@@ -83,24 +71,21 @@ func (db *dataStorage) ReserveProductsByCode(stocks []int, products string, prod
             WHERE v.code = product.code AND v.stock_id = product.stock_id
         )
         WHERE (code, stock_id) IN (%s)
-    `, products, products)
+    `, transaction.Products, transaction.Products)
 
 	result, err := tx.Exec(query)
 	if err != nil {
 		tx.Rollback()
-		if pqErr, ok := err.(*pq.Error); ok && pqErr.Code == "23514" {
-			return http.StatusOK, err
-		}
-		return http.StatusInternalServerError, err
+		return err
 	}
 	rows, err := result.RowsAffected()
 	if err != nil {
 		tx.Rollback()
-		return http.StatusInternalServerError, err
+		return err
 	}
-	if int(rows) != productsCount {
+	if int(rows) != transaction.Count {
 		tx.Rollback()
-		return http.StatusOK, errors.New("Not all products are in storehouse")
+		return errors.New("Not all products are in storehouse")
 	}
 
 	//ДОБАВЛЯЕМ РЕЗЕРВАЦИЮ
@@ -112,39 +97,39 @@ func (db *dataStorage) ReserveProductsByCode(stocks []int, products string, prod
             WHERE v.code = product.code AND v.stock_id = product.stock_id
         )
         WHERE (code, stock_id) IN (%s)
-    `, products, products)
+    `, transaction.Products, transaction.Products)
 	_, err = tx.Exec(query)
 	if err != nil {
 		tx.Rollback()
-		return http.StatusOK, err
+		return err
 	}
 	err = tx.Commit()
 	if err != nil {
-		return http.StatusInternalServerError, err
+		return err
 	}
-	return http.StatusOK, nil
+	return nil
 }
 
 // ReleaseProductsByCode Освобождение резерва товаров по уникальному коду и ID склада.
-func (db *dataStorage) ReleaseProductsByCode(stocks []int, products string, productsCount int) (int, error) {
+func (db *dataStorage) ReleaseProductsByCode(transaction StockTransaction) error {
 	var count int
 	tx, err := db.database.Begin()
 	if err != nil {
-		return http.StatusInternalServerError, err
+		return err
 	}
 
 	query := "SELECT COUNT(*) FROM storehouse WHERE is_available = true AND id IN ("
-	for _, stock := range stocks {
+	for _, stock := range transaction.Stocks {
 		query += fmt.Sprintf("%d,", stock)
 	}
 	query = query[:len(query)-1] + ")"
 	err = tx.QueryRow(query).Scan(&count)
 	if err != nil {
 		tx.Rollback()
-		return http.StatusInternalServerError, err
+		return err
 	}
-	if count != len(stocks) {
-		return http.StatusOK, errors.New("Storehouses are not available")
+	if count != len(transaction.Stocks) {
+		return errors.New("Storehouses are not available")
 	}
 
 	//ВЫЧИТАЕМ ИЗ РЕЗЕРВАЦИИ
@@ -156,24 +141,21 @@ func (db *dataStorage) ReleaseProductsByCode(stocks []int, products string, prod
             WHERE v.code = product.code AND v.stock_id = product.stock_id
         )
         WHERE (code, stock_id) IN (%s)
-    `, products, products)
+    `, transaction.Products, transaction.Products)
 
 	result, err := tx.Exec(query)
 	if err != nil {
 		tx.Rollback()
-		if pqErr, ok := err.(*pq.Error); ok && pqErr.Code == "23514" {
-			return http.StatusOK, err
-		}
-		return http.StatusInternalServerError, err
+		return err
 	}
 	rows, err := result.RowsAffected()
 	if err != nil {
 		tx.Rollback()
-		return http.StatusInternalServerError, err
+		return err
 	}
-	if int(rows) != productsCount {
+	if int(rows) != transaction.Count {
 		tx.Rollback()
-		return http.StatusOK, errors.New("Not all products are in storehouse")
+		return errors.New("Not all products are in storehouse")
 	}
 
 	//ДОБАВЛЯЕМ В ОБЩЕЕ КОЛИЧЕСТВО
@@ -185,17 +167,17 @@ func (db *dataStorage) ReleaseProductsByCode(stocks []int, products string, prod
             WHERE v.code = product.code AND v.stock_id = product.stock_id
         )
         WHERE (code, stock_id) IN (%s)
-    `, products, products)
+    `, transaction.Products, transaction.Products)
 
 	_, err = tx.Exec(query)
 	if err != nil {
 		tx.Rollback()
-		return http.StatusOK, err
+		return err
 	}
 	err = tx.Commit()
 	if err != nil {
-		return http.StatusInternalServerError, err
+		return err
 	}
 
-	return http.StatusOK, nil
+	return nil
 }

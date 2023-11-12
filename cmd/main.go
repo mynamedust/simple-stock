@@ -3,15 +3,23 @@ package main
 
 import (
 	"errors"
+	"github.com/mynamedust/simple-stock/internal/config"
+	"github.com/mynamedust/simple-stock/internal/server"
 	"log"
 	"net/http"
-	"simple-stock/internal/config"
-	"simple-stock/internal/server"
 )
 
 func main() {
-	if err := server.New(config.New()).Run(); !errors.Is(err, http.ErrServerClosed) {
-		log.Println(err)
-		return
+	сfg, err := config.New()
+	if err != nil {
+		log.Fatal(err)
+	}
+	s, err := server.New(сfg)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if err = s.Run(); !errors.Is(err, http.ErrServerClosed) {
+		log.Fatal(err)
 	}
 }

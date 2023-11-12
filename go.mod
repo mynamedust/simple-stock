@@ -1,4 +1,4 @@
-module simple-stock
+module github.com/mynamedust/simple-stock
 
 go 1.21
 

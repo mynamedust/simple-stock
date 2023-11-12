@@ -3,39 +3,27 @@
 package config
 
 import (
+	"github.com/mynamedust/simple-stock/pkg/models"
 	"github.com/spf13/viper"
-	"log"
 )
 
-// Server Конфигурация сервера, состоящая из прослушиваемого адреса и базы данных.
-type Server struct {
-	Address  string
-	Database Storage
-}
-
-// Storage Конфигурация базы данных, включающая в себя данные, требуемые для подключения.
-type Storage struct {
-	Name     string
-	User     string
-	Password string
-	Host     string
-	Port     string
-	SSL      string
-}
+const (
+	fileName = "config"
+	fileType = "yaml"
+	filePath = "./internal/config"
+)
 
 // New Конструктор конфигурации сервера.
-func New() (config Server) {
-	viper.SetConfigName("config")
-	viper.SetConfigType("yaml")
-	viper.AddConfigPath(".")
+func New() (config models.ServerConfig, err error) {
+	viper.SetConfigName(fileName)
+	viper.SetConfigType(fileType)
+	viper.AddConfigPath(filePath)
 
-	err := viper.ReadInConfig()
-	if err != nil {
-		log.Fatal(err)
+	if err = viper.ReadInConfig(); err != nil {
+		return
 	}
-	err = viper.Unmarshal(&config)
-	if err != nil {
-		log.Fatal(err)
+	if err = viper.Unmarshal(&config); err != nil {
+		return
 	}
 	return
 }
