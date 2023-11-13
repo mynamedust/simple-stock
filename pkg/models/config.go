@@ -1,12 +1,12 @@
 package models
 
-// ServerConfig Конфигурация сервера, состоящая из прослушиваемого адреса и базы данных.
+// ServerConfig конфигурация сервера.
 type ServerConfig struct {
 	Address  string
 	Database StorageConfig
 }
 
-// StorageConfig Конфигурация базы данных, включающая в себя данные, требуемые для подключения.
+// StorageConfig конфигурация базы данных.
 type StorageConfig struct {
 	Name     string
 	User     string

@@ -11,51 +11,54 @@ import (
 	"go.uber.org/zap"
 )
 
-func Reserve(products models.ProductDtoWithStorehouseID, storage interfaces.Reserver, log *zap.SugaredLogger) error {
-	quantityByID := make(map[int]int, len(products.DtoProductsChangeReservedStatus))
+// Reserve Функция резервации товаров на складе.
+func Reserve(products models.StorehouseDto, storage interfaces.Reserver, log *zap.SugaredLogger) error {
+	quantityByID := make(map[int]int, len(products.ProductsDto))
 
-	for _, product := range products.DtoProductsChangeReservedStatus {
+	for _, product := range products.ProductsDto {
 		quantityByID[product.ID] = product.Quantity
 	}
 	log.Debugw("reserve products",
 		"quantityByID", quantityByID,
-		"storehouseID", products.StorehouseID)
+		"storehouseID", products.ID)
 
-	if err := storage.ReserveProducts(context.Background(), quantityByID, products.StorehouseID); err != nil {
+	if err := storage.ReserveProducts(context.Background(), quantityByID, products.ID); err != nil {
 		return errors.Wrap(err, "failed to reserve products")
 	}
 
 	return nil
 }
 
-func Release(products models.ProductDtoWithStorehouseID, storage interfaces.Releaser, log *zap.SugaredLogger) error {
-	quantityByID := make(map[int]int, len(products.DtoProductsChangeReservedStatus))
+// Release Функция освобождения резервации на складе по уникальному коду товаров.
+func Release(products models.StorehouseDto, storage interfaces.Releaser, log *zap.SugaredLogger) error {
+	quantityByID := make(map[int]int, len(products.ProductsDto))
 
-	for _, product := range products.DtoProductsChangeReservedStatus {
+	for _, product := range products.ProductsDto {
 		quantityByID[product.ID] = product.Quantity
 	}
 	log.Debugw("reserve products",
 		"quantityByID", quantityByID,
-		"storehouseID", products.StorehouseID)
+		"storehouseID", products.ID)
 
-	if err := storage.ReleaseProducts(context.Background(), quantityByID, products.StorehouseID); err != nil {
+	if err := storage.ReleaseProducts(context.Background(), quantityByID, products.ID); err != nil {
 		return errors.Wrap(err, "failed to release products")
 	}
 
 	return nil
 }
 
-func GetRemainder(id int, storage interfaces.StorehouseRemainderGetter, log *zap.SugaredLogger) (int, error) {
+// GetStorehouseRemainder Получение информации о товарах на складе.
+func GetStorehouseRemainder(id int, storage interfaces.StorehouseRemainderGetter, log *zap.SugaredLogger) (*[]*models.ProductDto, error) {
 	log.Debugw("get storehouse remainder")
 
 	products, err := storage.GetStorehousesRemainder(context.Background(), id)
 	if err != nil {
-		return 0, errors.Wrap(err, "failed to get storehouse remainder")
+		return nil, errors.Wrap(err, "failed to get storehouse remainder")
 	}
 
-	count := 0
+	dto := make([]*models.ProductDto, 0, len(products))
 	for _, product := range products {
-		count += product.Quantity
+		dto = append(dto, &models.ProductDto{ID: product.StorehouseID, Quantity: product.Quantity})
 	}
-	return count, nil
+	return &dto, nil
 }

@@ -1,5 +1,4 @@
-// Package database Реализует работу приложения с базой данных
-// postgres, а так же определяет типы и интерфейсы для взаимодействия.
+// Package database реализует работу приложения с базой данных postgres.
 package database
 
 import (
@@ -11,14 +10,14 @@ import (
 	"golang.org/x/exp/maps"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 )
 
+// DataStorage представляет собой структуру для взаимодействия с базой данных с использованием GORM.
 type DataStorage struct {
 	database *gorm.DB
 }
 
-// New Конструктор конфигурации сервера.
+// New возвращает указатель на экземпляр DataStorage и ошибку, если подключение неуспешно.
 func New(cfg models.StorageConfig) (*DataStorage, error) {
 	db, err := gorm.Open(postgres.Open(fmt.Sprintf("host=postgres user=%s password=%s dbname=%s port=%s sslmode=%s", cfg.User, cfg.Password, cfg.Name, cfg.Port, cfg.SSL)), &gorm.Config{})
 	if err != nil {
@@ -29,16 +28,21 @@ func New(cfg models.StorageConfig) (*DataStorage, error) {
 	}, nil
 }
 
-// Close Закрытие соединения с базой данных.
+// Close закрытие соединения с базой данных.
 func (db *DataStorage) Close() {
 	db.Close()
 }
 
+// GetStorehousesRemainder возвращает информацию о всех товарах лежащих на складе с указанным storehouseID.
 func (db *DataStorage) GetStorehousesRemainder(ctx context.Context, storehouseID int) ([]models.Product, error) {
 	product := make([]models.Product, 0)
-	fmt.Println("id", storehouseID)
-	if err := db.database.WithContext(ctx).
-		Model(new(models.Product)).
+
+	tx := db.database.WithContext(ctx).Begin()
+	if err := tx.Exec(`set transaction isolation level read committed`).Error; err != nil {
+		tx.Rollback()
+		return nil, err
+	}
+	if err := tx.Model(new(models.Product)).
 		Select("product.*").
 		Joins("INNER JOIN storehouse AS s ON s.id = product.storehouse_id").
 		Where("s.id = ?", storehouseID).
@@ -49,8 +53,14 @@ func (db *DataStorage) GetStorehousesRemainder(ctx context.Context, storehouseID
 	return product, nil
 }
 
+// ReserveProducts резервирует товары по ID на складе с указанным storehouseID.
 func (db *DataStorage) ReserveProducts(ctx context.Context, quantityByID map[int]int, storehouseID int) error {
-	tx := db.database.WithContext(ctx).Clauses(clause.Locking{Strength: "UPDATE"})
+	tx := db.database.WithContext(ctx).Begin()
+
+	if err := tx.Exec(`set transaction isolation level serializable`).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
 	products := make([]models.Product, 0, len(quantityByID))
 	if err := tx.Model(new(models.Product)).
 		Select("product.*").
@@ -75,7 +85,7 @@ func (db *DataStorage) ReserveProducts(ctx context.Context, quantityByID map[int
 		}
 		products[i].Reserved += quantityByID[products[i].ID]
 	}
-	if err := tx.Model(new(models.Product)).Save(products).Error; err != nil {
+	if err := tx.Save(products).Error; err != nil {
 		tx.Rollback()
 		return err
 	}
@@ -84,9 +94,14 @@ func (db *DataStorage) ReserveProducts(ctx context.Context, quantityByID map[int
 	return nil
 }
 
+// ReleaseProducts освобождает зарезервированные товары по ID на складе с указанным storehouseID.
 func (db *DataStorage) ReleaseProducts(ctx context.Context, quantityByID map[int]int, storehouseID int) error {
-	tx := db.database.WithContext(ctx).Clauses(clause.Locking{Strength: "UPDATE"})
+	tx := db.database.WithContext(ctx).Begin()
 
+	if err := tx.Exec(`set transaction isolation level serializable`).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
 	products := make([]models.Product, 0, len(quantityByID))
 	if err := tx.Model(new(models.Product)).
 		Select("product.*").
@@ -112,7 +127,7 @@ func (db *DataStorage) ReleaseProducts(ctx context.Context, quantityByID map[int
 		products[i].Quantity += quantityByID[products[i].ID]
 	}
 
-	if err := tx.Model(new(models.Product)).Save(products).Error; err != nil {
+	if err := tx.Save(products).Error; err != nil {
 		tx.Rollback()
 		return err
 	}

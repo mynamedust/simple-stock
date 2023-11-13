@@ -6,6 +6,7 @@ import (
 	"net/http"
 )
 
+// contentTypeCheck возвращает ошибку, если content-type запроса не соответстует "application/vnd.api+json".
 func (s *Server) contentTypeCheck(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if contentType := r.Header.Get("Content-Type"); contentType != jsonapi.MediaType {

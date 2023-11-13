@@ -1,7 +1,7 @@
-// Package models Пакет предоставляющий модели для товаров и складов.
+// Package models описывает модели.
 package models
 
-// Product Модель товаров включающая ID, идентификатор склада и уникальный код.
+// Product модель товара.
 type Product struct {
 	ID           int    `jsonapi:"primary,product",gorm:"primaryKey"`
 	StorehouseID int    `jsonapi:"attr,storehouse_id",gorm:"column:storehouse_id"`
@@ -11,6 +11,7 @@ type Product struct {
 	Name         string `jsonapi:"attr,name",gorm:"column:name"`
 }
 
+// TableName возвращает имя таблицы.
 func (Product) TableName() string {
 	return "product"
 }

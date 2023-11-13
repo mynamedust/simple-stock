@@ -11,11 +11,12 @@ import (
 )
 
 func main() {
+	// Создание конфигурации приложения
 	cfg, err := config.New()
 	if err != nil {
 		log.Fatal(err)
 	}
-	//Инициализация базы данных
+	// Инициализация базы данных
 	storage, err := database.New(cfg.Database)
 	if err != nil {
 		log.Fatal(err)
@@ -25,6 +26,7 @@ func main() {
 		log.Fatal(err)
 	}
 
+	// Запуск приложения
 	if err = s.Run(); !errors.Is(err, http.ErrServerClosed) {
 		log.Fatal(err)
 	}

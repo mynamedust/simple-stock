@@ -1,11 +1,12 @@
 package models
 
-// Storehouse Модель складов включающая идентификатор склада.
+// Storehouse модель склада.
 type Storehouse struct {
 	ID    int `jsonapi:"primary,storehouse"`
 	Count int `jsonapi:"attr,count,omitempty"`
 }
 
+// TableName возвращает имя таблицы.
 func (Storehouse) TableName() string {
 	return "storehouse"
 }

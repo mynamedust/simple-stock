@@ -1,4 +1,4 @@
-// Package config Пакет предоставляет функции для работы с конфигурацией сервера и базы данных.
+// Package config предоставляет функции для работы с конфигурацией сервера и базы данных.
 // Использует библиотеку "github.com/spf13/viper" для чтения конфигурационных файлов в формате YAML.
 package config
 
@@ -13,7 +13,7 @@ const (
 	filePath = "./internal/config"
 )
 
-// New Конструктор конфигурации сервера.
+// New возвращает конфигурацию сервера и ошибку чтения конфигурационного файла, если она есть.
 func New() (models.ServerConfig, error) {
 	viper.SetConfigName(fileName)
 	viper.SetConfigType(fileType)

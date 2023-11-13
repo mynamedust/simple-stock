@@ -8,15 +8,15 @@ import (
 	"net/http"
 )
 
-func parseRequestBody(body io.ReadCloser) (models.ProductDtoWithStorehouseID, error) {
-	var products models.ProductDtoWithStorehouseID
+func parseRequestBody(body io.ReadCloser) (models.StorehouseDto, error) {
+	var products models.StorehouseDto
 	if err := jsonapi.UnmarshalPayload(body, &products); err != nil {
 		return products, err
 	}
 	return products, nil
 }
 
-// reserveProducts Обработчик HTTP-запросов для резервирования товаров.
+// reserveProducts резервирует товары на складе.
 func (s *Server) reserveProducts(w http.ResponseWriter, r *http.Request) {
 	products, err := parseRequestBody(r.Body)
 	if err != nil {
@@ -31,7 +31,7 @@ func (s *Server) reserveProducts(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-// releaseProducts Обработчик HTTP-запросов для освобождения резерва товаров.
+// releaseProducts освобождает зарезервированные товары.
 func (s *Server) releaseProducts(w http.ResponseWriter, r *http.Request) {
 	products, err := parseRequestBody(r.Body)
 	if err != nil {
@@ -46,24 +46,23 @@ func (s *Server) releaseProducts(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-// getStock Обработчик HTTP-запросов для получения количества товаров на складе.
-func (s *Server) getStock(w http.ResponseWriter, r *http.Request) {
+// GetStorehouseRemainder возвращает количество товаров на складе.
+func (s *Server) GetStorehouseRemainder(w http.ResponseWriter, r *http.Request) {
 	var storehouse models.Storehouse
 	if err := jsonapi.UnmarshalPayload(r.Body, &storehouse); err != nil {
 		s.handleError(w, []error{err}, "JSONAPI decoding error", http.StatusBadRequest)
 		return
 	}
 
-	count, err := business.GetRemainder(storehouse.ID, s.storage, s.logger)
+	dto, err := business.GetStorehouseRemainder(storehouse.ID, s.storage, s.logger)
 	if err != nil {
 		s.handleError(w, []error{err}, "database request failed", http.StatusInternalServerError)
 		return
 	}
-	storehouse.Count = count
 
 	w.Header().Set("Content-Type", jsonapi.MediaType)
 	w.WriteHeader(http.StatusOK)
-	if err := jsonapi.MarshalPayload(w, &storehouse); err != nil {
+	if err := jsonapi.MarshalPayload(w, *dto); err != nil {
 		s.handleError(w, []error{err}, "response marshalling error", http.StatusInternalServerError)
 		return
 	}

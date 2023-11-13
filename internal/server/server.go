@@ -30,7 +30,7 @@ func (s *Server) Run() error {
 	return http.ListenAndServe(s.address, s.router)
 }
 
-// New Конструктор сервера управления товарами.
+// New возвращает указатель на экземпляр сервера и ошибку, если она есть.
 func New(cfg models.ServerConfig, storage interfaces.Storage) (*Server, error) {
 	s := &Server{
 		address: cfg.Address,
@@ -40,11 +40,11 @@ func New(cfg models.ServerConfig, storage interfaces.Storage) (*Server, error) {
 	// Инициализация роутинга
 	s.router = mux.NewRouter()
 	s.router.Use(s.contentTypeCheck)
-	s.router.HandleFunc("/products/stock", s.getStock).Methods("GET")
+	s.router.HandleFunc("/products/stock", s.GetStorehouseRemainder).Methods("GET")
 	s.router.HandleFunc("/products/reserve", s.reserveProducts).Methods("POST")
 	s.router.HandleFunc("/products/release", s.releaseProducts).Methods("POST")
 
-	//Инициализация логгера
+	// Инициализация логгера
 	logger, err := zap.NewDevelopment()
 	if err != nil {
 		return nil, err

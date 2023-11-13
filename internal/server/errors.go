@@ -6,11 +6,11 @@ import (
 	"strconv"
 )
 
+// handleError логирует оишбки из аргумента и выводит их клиенту.
 func (s *Server) handleError(w http.ResponseWriter, errors []error, message string, statusCode int) {
 	var errorsObjects []*jsonapi.ErrorObject
 
 	for _, err := range errors {
-		//Логирование ошибки
 		s.logger.Errorw(message,
 			"error", err.Error(),
 		)
@@ -21,7 +21,6 @@ func (s *Server) handleError(w http.ResponseWriter, errors []error, message stri
 		})
 	}
 
-	// Сериализуем ошибку в формат JSON:API
 	w.Header().Set("Content-Type", jsonapi.MediaType)
 	w.WriteHeader(statusCode)
 	jsonapi.MarshalErrors(w, errorsObjects)
