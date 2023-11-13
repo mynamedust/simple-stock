@@ -6,10 +6,10 @@ COPY go.mod .
 COPY go.sum .
 RUN go mod download
 COPY . .
-RUN go build -o ./build/myapp ./cmd
+RUN go build -o ./build/simple-stock ./cmd
 
 FROM alpine:3.18
 WORKDIR /app
-COPY --from=builder /app/build/myapp .
+COPY --from=builder /app/build/simple-stock .
 COPY --from=builder /app/internal/config/config.yml /app/internal/config/
-CMD ["./myapp"]
+CMD ["./simple-stock"]

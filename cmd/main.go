@@ -5,16 +5,22 @@ import (
 	"errors"
 	"github.com/mynamedust/simple-stock/internal/config"
 	"github.com/mynamedust/simple-stock/internal/server"
+	"github.com/mynamedust/simple-stock/pkg/database"
 	"log"
 	"net/http"
 )
 
 func main() {
-	сfg, err := config.New()
+	cfg, err := config.New()
 	if err != nil {
 		log.Fatal(err)
 	}
-	s, err := server.New(сfg)
+	//Инициализация базы данных
+	storage, err := database.New(cfg.Database)
+	if err != nil {
+		log.Fatal(err)
+	}
+	s, err := server.New(cfg, storage)
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -5,7 +5,7 @@ package server
 
 import (
 	"github.com/gorilla/mux"
-	"github.com/mynamedust/simple-stock/pkg/database"
+	"github.com/mynamedust/simple-stock/internal/interfaces"
 	"github.com/mynamedust/simple-stock/pkg/models"
 	"go.uber.org/zap"
 	"net/http"
@@ -14,8 +14,8 @@ import (
 // Server Структура веб-сервера.
 type Server struct {
 	router  *mux.Router
-	storage database.Storage
-	address string //`env:"SERVER_ADDRESS"`
+	storage interfaces.Storage
+	address string
 	logger  *zap.SugaredLogger
 }
 
@@ -31,25 +31,25 @@ func (s *Server) Run() error {
 }
 
 // New Конструктор сервера управления товарами.
-func New(cfg models.ServerConfig) (s *Server, err error) {
-	s = &Server{
+func New(cfg models.ServerConfig, storage interfaces.Storage) (*Server, error) {
+	s := &Server{
 		address: cfg.Address,
+		storage: storage,
 	}
 
 	// Инициализация роутинга
 	s.router = mux.NewRouter()
-	s.router.Handle("/products/stock", s.contentTypeCheck(http.HandlerFunc(s.getStock))).Methods("GET")
-	s.router.Handle("/products/reserve", s.contentTypeCheck(http.HandlerFunc(s.reserveProducts))).Methods("POST")
-	s.router.Handle("/products/release", s.contentTypeCheck(http.HandlerFunc(s.releaseProducts))).Methods("POST")
+	s.router.Use(s.contentTypeCheck)
+	s.router.HandleFunc("/products/stock", s.getStock).Methods("GET")
+	s.router.HandleFunc("/products/reserve", s.reserveProducts).Methods("POST")
+	s.router.HandleFunc("/products/release", s.releaseProducts).Methods("POST")
 
 	//Инициализация логгера
 	logger, err := zap.NewDevelopment()
 	if err != nil {
-		return
+		return nil, err
 	}
 	s.logger = logger.Sugar()
 
-	//Инициализация базы данных
-	s.storage, err = database.New(cfg.Database)
-	return
+	return s, nil
 }

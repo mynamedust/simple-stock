@@ -14,16 +14,17 @@ const (
 )
 
 // New Конструктор конфигурации сервера.
-func New() (config models.ServerConfig, err error) {
+func New() (models.ServerConfig, error) {
 	viper.SetConfigName(fileName)
 	viper.SetConfigType(fileType)
 	viper.AddConfigPath(filePath)
 
-	if err = viper.ReadInConfig(); err != nil {
-		return
+	var config models.ServerConfig
+	if err := viper.ReadInConfig(); err != nil {
+		return config, err
 	}
-	if err = viper.Unmarshal(&config); err != nil {
-		return
+	if err := viper.Unmarshal(&config); err != nil {
+		return config, err
 	}
-	return
+	return config, nil
 }

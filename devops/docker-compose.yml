@@ -25,7 +25,7 @@ services:
           condition: service_healthy
     command: [ "-path", "/migrations", "-database",  "postgres://postgres:mysecretpassword@postgres:5432/lamoda?sslmode=disable", "up"]
 
-  myapp:
+  simple-stock:
     build:
       context: ../
       dockerfile: ./devops/Dockerfile

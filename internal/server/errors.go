@@ -6,20 +6,23 @@ import (
 	"strconv"
 )
 
-func (s *Server) handleError(w http.ResponseWriter, err error, logMessage string, statusCode int) {
-	//Логирование ошибки
-	s.logger.Errorw(
-		logMessage,
-		"error", err.Error(),
-	)
+func (s *Server) handleError(w http.ResponseWriter, errors []error, message string, statusCode int) {
+	var errorsObjects []*jsonapi.ErrorObject
+
+	for _, err := range errors {
+		//Логирование ошибки
+		s.logger.Errorw(message,
+			"error", err.Error(),
+		)
+
+		errorsObjects = append(errorsObjects, &jsonapi.ErrorObject{
+			Status: strconv.Itoa(statusCode),
+			Detail: err.Error(),
+		})
+	}
 
 	// Сериализуем ошибку в формат JSON:API
 	w.Header().Set("Content-Type", jsonapi.MediaType)
 	w.WriteHeader(statusCode)
-	jsonapi.MarshalErrors(w, []*jsonapi.ErrorObject{{
-		ID:     "1",
-		Status: strconv.Itoa(statusCode),
-		Title:  logMessage,
-		Detail: err.Error(),
-	}})
+	jsonapi.MarshalErrors(w, errorsObjects)
 }
